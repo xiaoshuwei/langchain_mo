@@ -71,6 +71,7 @@ from langchain.vectorstores.vectara import Vectara
 from langchain.vectorstores.weaviate import Weaviate
 from langchain.vectorstores.zep import ZepVectorStore
 from langchain.vectorstores.zilliz import Zilliz
+from langchain.vectorstores.matrixone import Matrixone
 
 __all__ = [
     "AlibabaCloudOpenSearch",
@@ -132,4 +133,5 @@ __all__ = [
     "Zilliz",
     "PGVector",
     "USearch",
+    "Matrixone",
 ]
