@@ -5,17 +5,11 @@ from typing import Any, Callable, Iterable, List, Optional, Tuple
 
 from langchain.docstore.document import Document
 from langchain.embeddings.base import Embeddings
-from langchain.utils import get_from_dict_or_env
 from langchain.vectorstores import VectorStore
 from langchain.vectorstores.utils import maximal_marginal_relevance
-from langchain.math_utils import Matrix
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
-from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.sql.expression import ColumnClause
+from sqlalchemy.orm import sessionmaker
 from typing import List
-from sqlalchemy import String, TEXT, create_engine, select, Table, Column, text, delete
+from sqlalchemy import String, TEXT, create_engine, Table, Column, text
 import sqlalchemy.types as types
 from sqlalchemy.orm import registry
 import json
