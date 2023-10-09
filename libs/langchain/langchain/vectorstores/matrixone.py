@@ -97,16 +97,19 @@ class Matrixone(VectorStore):
         self.engine = create_engine(connectionSQL, echo=True)
 
     def _new_mo_doc_embedding_table_and_registry(self,dimensions):
-        mapper_registry = registry()
+        self.mapper_registry = registry()
         table = Table(
             self.table_name,
-            mapper_registry.metadata,
+            self.mapper_registry.metadata,
             Column("id",String(256),primary_key=True),
             Column("payload",TEXT,nullable=False),
             Column("doc_embedding_vector",MODoubleVector(dimensions),nullable=False)
         )
-        mapper_registry.metadata.create_all(bind=self.engine)
-        mapper_registry.map_imperatively(MODocEmbedding,table,properties={
+        self.mapper_registry.metadata.create_all(bind=self.engine)
+
+        if sqlalchemy.inspection.inspect(subject=MODocEmbedding,raiseerr=False) != None:
+            return 
+        self.mapper_registry.map_imperatively(MODocEmbedding,table,properties={
             'id': table.c.id,
             'payload': table.c.payload,
             'doc_embedding_vector': table.c.doc_embedding_vector,
