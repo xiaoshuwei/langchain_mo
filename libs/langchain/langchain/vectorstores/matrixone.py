@@ -12,6 +12,7 @@ from typing import List
 from sqlalchemy import String, TEXT, create_engine, Table, Column, text
 import sqlalchemy.types as types
 from sqlalchemy.orm import registry
+import sqlalchemy
 import json
 import uuid
 import numpy as np
