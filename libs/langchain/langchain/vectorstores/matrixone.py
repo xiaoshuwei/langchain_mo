@@ -92,6 +92,8 @@ class Matrixone(VectorStore):
         self.engine = create_engine(connectionSQL, echo=True)
         with self.engine.connect() as conn:
             conn.execute(text("create database if not exists {database};use {database};".format(database=dbname)))
+        connectionSQL = "mysql+pymysql://%s:%s@%s:%d/%s" % (user,password,host,port,dbname)
+        self.engine = create_engine(connectionSQL, echo=True)
 
     def _new_mo_doc_embedding_table_and_registry(self,dimensions):
         self.mapper_registry = registry()
