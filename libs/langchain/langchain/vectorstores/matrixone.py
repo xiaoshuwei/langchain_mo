@@ -91,7 +91,8 @@ class Matrixone(VectorStore):
         connectionSQL = "mysql+pymysql://%s:%s@%s:%d" % (user,password,host,port)
         self.engine = create_engine(connectionSQL, echo=True)
         with self.engine.connect() as conn:
-            conn.execute(text("create database if not exists {database};use {database};".format(database=dbname)))
+            conn.execute(text("create database if not exists {database};use {database};drop table if exists {table_name};".format(database=dbname,table_name=table_name)))
+            conn.commit()
         connectionSQL = "mysql+pymysql://%s:%s@%s:%d/%s" % (user,password,host,port,dbname)
         self.engine = create_engine(connectionSQL, echo=True)
 
