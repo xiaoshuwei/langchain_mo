@@ -73,11 +73,8 @@ class Matrixone(VectorStore):
     Wrapper around Matrixone vector database.
     Example:
         .. code-block:: python
-            from langchain import Matrixone
-            conn = MySQLdb.connect(host="127.0.0.1", port=6001, user="user", passwd="pwd", db="database_name")
-            table_name = "table_name"
-            column_name = "embedding_column_name"
-            MO = Matrixone(conn, table_name, column_name, embedding)
+            from langchain.vectorstores.matrixone import Matrixone
+            MO = Matrixone(host="127.0.0.1", port=6001, user="user", passwd="pwd", db="database_name", table_name=table_name, embedding=embedding)
     """
 
     def __init__(self,
