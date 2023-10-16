@@ -17,6 +17,12 @@ import json
 import uuid
 import numpy as np
 
+key_metadata = 'metadata'
+key_page_content = 'page_content'
+key_id = 'id'
+key_payload = 'payload'
+key_doc_embedding_vector = 'doc_embedding_vector'
+
 
 class MODoubleVector(types.UserDefinedType):
     impl = types.TEXT
@@ -91,7 +97,8 @@ class Matrixone(VectorStore):
         self.user = user
         self.password = password
         self.dbname = dbname
-        connectionSQL = "mysql+pymysql://%s:%s@%s:%d" % (user, password, host, port)
+        connectionSQL = "mysql+pymysql://%s:%s@%s:%d" % (
+            user, password, host, port)
         self.engine = create_engine(connectionSQL, echo=True)
         with self.engine.connect() as conn:
             conn.execute(text("create database if not exists {database};use {database};drop table if exists {table_name};".format(
@@ -108,7 +115,8 @@ class Matrixone(VectorStore):
             self.mapper_registry.metadata,
             Column("id", String(256), primary_key=True),
             Column("payload", TEXT, nullable=False),
-            Column("doc_embedding_vector", MODoubleVector(dimensions), nullable=False)
+            Column("doc_embedding_vector", MODoubleVector(
+                dimensions), nullable=False)
         )
         self.mapper_registry.metadata.create_all(bind=self.engine)
 
@@ -186,7 +194,8 @@ class Matrixone(VectorStore):
         Returns:
             List of Documents most similar to the query vector.
         """
-        results = self.similarity_search_by_vector_with_score(embedding=embedding, k=k)
+        results = self.similarity_search_by_vector_with_score(
+            embedding=embedding, k=k)
         return list(map(itemgetter(0), results))
 
     def similarity_search_with_score(
@@ -215,7 +224,8 @@ class Matrixone(VectorStore):
 
         return [
             (
-                self._document_from_payload(result.payload),
+                self._document_from_payload(
+                    result.payload, result.id, result.doc_embedding_vector),
                 result.score,
             )
             for result in results.mappings().all()
@@ -324,7 +334,8 @@ class Matrixone(VectorStore):
 
         return [
             (
-                self._document_from_payload(results_maps[i].payload),
+                self._document_from_payload(
+                    results_maps[i].payload, results_maps[i].id, results_maps[i].doc_embedding_vector),
                 results_maps[i].score,
             )
             for i in mmr_selected
@@ -397,18 +408,26 @@ class Matrixone(VectorStore):
     ) -> List[dict]:
         return [
             {
-                "page_content": text,
-                "metadata": metadatas[i] if metadatas is not None else None,
+                key_page_content: text,
+                key_metadata: metadatas[i] if metadatas is not None else None,
             }
             for i, text in enumerate(texts)
         ]
 
     @classmethod
-    def _document_from_payload(cls, payload: str) -> Document:
+    def _document_from_payload(cls, payload: str, id: str, embedding: List[float]) -> Document:
         payload_map = json.loads(payload)
+        if not isinstance(payload_map, dict):
+            return None
+        metadata_map = payload_map.get(key_metadata, None)
+        if metadata_map == None:
+            payload_map[key_metadata] = {}
+        payload_map[key_metadata][key_id] = id
+        payload_map[key_metadata][key_doc_embedding_vector] = embedding
+
         return Document(
-            page_content=payload_map["page_content"],
-            metadata=payload_map["metadata"],
+            page_content=payload_map[key_page_content],
+            metadata=payload_map[key_metadata],
         )
 
     @classmethod
