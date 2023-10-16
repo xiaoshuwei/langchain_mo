@@ -17,13 +17,12 @@ import json
 import uuid
 import numpy as np
 
+
 class MODoubleVector(types.UserDefinedType):
     impl = types.TEXT
 
-    cache_ok = True
-
-    def __init__(self, precision:int = None):
-        if precision == None :
+    def __init__(self, precision: int = None):
+        if precision == None:
             raise ValueError(
                 "precision is None. "
                 "Please input precision."
@@ -32,16 +31,17 @@ class MODoubleVector(types.UserDefinedType):
 
     def get_col_spec(self, **kw):
         return "vecf64(%s)" % self.precision
-    
+
     def bind_processor(self, dialect):
         def process(value):
-            return json.dumps(value,separators=(',',':'))
+            return json.dumps(value, separators=(',', ':'))
         return process
 
     def result_processor(self, dialect, coltype):
         def process(value):
             return json.loads(value)
         return process
+
 
 class MODocEmbedding:
     def __init__(self, id=None, payload=None, doc_embedding_vector=None):
@@ -50,14 +50,17 @@ class MODocEmbedding:
         self.id = id
         self.doc_embedding_vector = doc_embedding_vector
         self.payload = payload
+
     @classmethod
-    def _to_vector_str(cls, vector:List[float]) -> str:
-        return json.dumps(vector,separators=(',',':'))
+    def _to_vector_str(cls, vector: List[float]) -> str:
+        return json.dumps(vector, separators=(',', ':'))
+
 
 class MODocEmbeddingWithScore(MODocEmbedding):
     def __init__(self, id=None, payload=None, doc_embedding_vector=None):
-        super.__init__(id,payload,doc_embedding_vector)
+        super.__init__(id, payload, doc_embedding_vector)
         self.score = 0
+
 
 class Matrixone(VectorStore):
     """
@@ -71,16 +74,16 @@ class Matrixone(VectorStore):
             MO = Matrixone(conn, table_name, column_name, embedding)
     """
 
-    def __init__(self, 
-                 table_name: str, 
-                 embedding: Embeddings, 
-                 host:str, 
-                 user:str, 
-                 password:str, 
-                 dbname:str,
-                 port:str = 6001):
+    def __init__(self,
+                 table_name: str,
+                 embedding: Embeddings,
+                 host: str,
+                 user: str,
+                 password: str,
+                 dbname: str,
+                 port: str = 6001):
         """Initialize with necessary components."""
-        
+
         self.table_name = table_name
         self.embedding = embedding
         self.host = host
@@ -88,28 +91,30 @@ class Matrixone(VectorStore):
         self.user = user
         self.password = password
         self.dbname = dbname
-        connectionSQL = "mysql+pymysql://%s:%s@%s:%d" % (user,password,host,port)
+        connectionSQL = "mysql+pymysql://%s:%s@%s:%d" % (user, password, host, port)
         self.engine = create_engine(connectionSQL, echo=True)
         with self.engine.connect() as conn:
-            conn.execute(text("create database if not exists {database};use {database};drop table if exists {table_name};".format(database=dbname,table_name=table_name)))
+            conn.execute(text("create database if not exists {database};use {database};drop table if exists {table_name};".format(
+                database=dbname, table_name=table_name)))
             conn.commit()
-        connectionSQL = "mysql+pymysql://%s:%s@%s:%d/%s" % (user,password,host,port,dbname)
+        connectionSQL = "mysql+pymysql://%s:%s@%s:%d/%s" % (
+            user, password, host, port, dbname)
         self.engine = create_engine(connectionSQL, echo=True)
 
-    def _new_mo_doc_embedding_table_and_registry(self,dimensions):
+    def _new_mo_doc_embedding_table_and_registry(self, dimensions):
         self.mapper_registry = registry()
         table = Table(
             self.table_name,
             self.mapper_registry.metadata,
-            Column("id",String(256),primary_key=True),
-            Column("payload",TEXT,nullable=False),
-            Column("doc_embedding_vector",MODoubleVector(dimensions),nullable=False)
+            Column("id", String(256), primary_key=True),
+            Column("payload", TEXT, nullable=False),
+            Column("doc_embedding_vector", MODoubleVector(dimensions), nullable=False)
         )
         self.mapper_registry.metadata.create_all(bind=self.engine)
 
-        if sqlalchemy.inspection.inspect(subject=MODocEmbedding,raiseerr=False) != None:
-            return 
-        self.mapper_registry.map_imperatively(MODocEmbedding,table,properties={
+        if sqlalchemy.inspection.inspect(subject=MODocEmbedding, raiseerr=False) != None:
+            return
+        self.mapper_registry.map_imperatively(MODocEmbedding, table, properties={
             'id': table.c.id,
             'payload': table.c.payload,
             'doc_embedding_vector': table.c.doc_embedding_vector,
@@ -130,8 +135,8 @@ class Matrixone(VectorStore):
             List of ids from adding the texts into the vectorstore.
         """
 
-        payloads = self._build_payloads(texts=texts,metadatas=metadatas)
-        
+        payloads = self._build_payloads(texts=texts, metadatas=metadatas)
+
         vectors = self.embedding.embed_documents(texts=texts)
 
         if len(vectors) <= 0:
@@ -146,9 +151,10 @@ class Matrixone(VectorStore):
         ids = []
         for i in range(len(texts)):
             id = uuid.uuid4().hex
-            docs.append(MODocEmbedding(id=id,payload=json.dumps(payloads[i]),doc_embedding_vector=vectors[i]))
+            docs.append(MODocEmbedding(id=id, payload=json.dumps(
+                payloads[i]), doc_embedding_vector=vectors[i]))
             ids.append(id)
-        
+
         session.add_all(docs)
 
         session.commit()
@@ -193,7 +199,7 @@ class Matrixone(VectorStore):
         Returns:
             List of Documents most similar to the query and score for each
         """
-        return self.similarity_search_by_vector_with_score(embedding=self.embedding.embed_query(query),k=k)
+        return self.similarity_search_by_vector_with_score(embedding=self.embedding.embed_query(query), k=k)
 
     def similarity_search_by_vector_with_score(
         self, embedding: List[float], k: int = 4
@@ -201,7 +207,8 @@ class Matrixone(VectorStore):
         session = self._get_session()
 
         sql = text("SELECT *,cosine_similarity(doc_embedding_vector, :embedding_str) as score FROM %s ORDER BY score LIMIT :limit_count ;" % (self.table_name))
-        results = session.execute(sql,{'embedding_str':self._to_vector_str(embedding),'limit_count':k})
+        results = session.execute(
+            sql, {'embedding_str': self._to_vector_str(embedding), 'limit_count': k})
 
         session.commit()
         session.close()
@@ -243,7 +250,7 @@ class Matrixone(VectorStore):
         return self.max_marginal_relevance_search_by_vector(
             query_embedding, k, fetch_k, lambda_mult, **kwargs
         )
-    
+
     def max_marginal_relevance_search_by_vector(
         self,
         embedding: List[float],
@@ -300,7 +307,8 @@ class Matrixone(VectorStore):
         session = self._get_session()
 
         sql = text("SELECT *,cosine_similarity(doc_embedding_vector, :embedding_str) as score FROM %s ORDER BY score LIMIT :limit_count ;" % (self.table_name))
-        results = session.execute(sql,{'embedding_str':self._to_vector_str(embedding),'limit_count':fetch_k})
+        results = session.execute(
+            sql, {'embedding_str': self._to_vector_str(embedding), 'limit_count': fetch_k})
 
         session.commit()
         session.close()
@@ -321,11 +329,11 @@ class Matrixone(VectorStore):
             )
             for i in mmr_selected
         ]
-    
+
     @property
     def embeddings(self) -> Optional[Embeddings]:
         return self._embeddings
-    
+
     def delete(self, ids: Optional[List[str]] = None, **kwargs: Any) -> Optional[bool]:
         """Delete by vector ID or other criteria.
 
@@ -342,13 +350,13 @@ class Matrixone(VectorStore):
         docs = session.query(MODocEmbedding).filter(MODocEmbedding.id.in_(ids))
         for doc in docs:
             session.delete(doc)
-        
+
         session.commit()
 
         session.close()
 
         return True
-    
+
     def _select_relevance_score_fn(self) -> Callable[[float], float]:
         return self._cosine_relevance_score_fn
 
@@ -378,8 +386,9 @@ class Matrixone(VectorStore):
                 embeddings = OpenAIEmbeddings()
                 mo = Matrixone.from_texts(texts=texts,embedding=embedding,user=user,password=password,dbname=dbname)
         """
-        mo = Matrixone(table_name=table_name,embedding=embedding,host=host,port=port,user=user,password=password,dbname=dbname)
-        mo.add_texts(texts=texts,metadatas=metadatas)
+        mo = Matrixone(table_name=table_name, embedding=embedding, host=host,
+                       port=port, user=user, password=password, dbname=dbname)
+        mo.add_texts(texts=texts, metadatas=metadatas)
         return mo
 
     @classmethod
@@ -403,8 +412,9 @@ class Matrixone(VectorStore):
         )
 
     @classmethod
-    def _to_vector_str(cls, vector:List[float]) -> str:
-        return json.dumps(vector,separators=(',',':'))
+    def _to_vector_str(cls, vector: List[float]) -> str:
+        return json.dumps(vector, separators=(',', ':'))
+
     @classmethod
-    def _str_to_vector(cls, vector_str:str) -> List[float]:
+    def _str_to_vector(cls, vector_str: str) -> List[float]:
         return json.loads(vector_str)
