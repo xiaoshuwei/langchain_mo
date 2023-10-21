@@ -40,11 +40,15 @@ class MODoubleVector(types.UserDefinedType):
 
     def bind_processor(self, dialect):
         def process(value):
+            if value == None:
+                return None
             return json.dumps(value, separators=(',', ':'))
         return process
 
     def result_processor(self, dialect, coltype):
         def process(value):
+            if value == None:
+                return None
             return json.loads(value)
         return process
 
