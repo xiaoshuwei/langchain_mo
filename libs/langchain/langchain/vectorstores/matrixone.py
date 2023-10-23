@@ -152,15 +152,7 @@ class Matrixone(VectorStore):
 
         self._new_mo_doc_embedding_table_and_registry(dimensions)
 
-        # ping db to keep connection alive.
-        try:
-            session = sessionmaker(bind=self.engine)()
-            session.execute("SELECT 1;")
-            session.commit()
-        except:
-            session.rollback()
-        finally:
-            session.close()
+        self.pingdb()
 
         session = self._get_session()
 
@@ -222,15 +214,8 @@ class Matrixone(VectorStore):
     def similarity_search_by_vector_with_score(
         self, embedding: List[float], k: int = 4
     ) -> List[Tuple[Document, float]]:
-        # ping db to keep connection alive.
-        try:
-            session = sessionmaker(bind=self.engine)()
-            session.execute("SELECT 1;")
-            session.commit()
-        except:
-            session.rollback()
-        finally:
-            session.close()
+
+        self.pingdb()
 
         session = self._get_session()
 
@@ -334,15 +319,7 @@ class Matrixone(VectorStore):
             each.
         """
 
-        # ping db to keep connection alive.
-        try:
-            session = sessionmaker(bind=self.engine)()
-            session.execute("SELECT 1;")
-            session.commit()
-        except:
-            session.rollback()
-        finally:
-            session.close()
+        self.pingdb()
 
         session = self._get_session()
 
@@ -386,15 +363,7 @@ class Matrixone(VectorStore):
             Optional[bool]: True if deletion is successful,
             False otherwise, None if not implemented.
         """
-        # ping db to keep connection alive.
-        try:
-            session = sessionmaker(bind=self.engine)()
-            session.execute("SELECT 1;")
-            session.commit()
-        except:
-            session.rollback()
-        finally:
-            session.close()
+        self.pingdb()
 
         session = self._get_session()
 
@@ -407,6 +376,17 @@ class Matrixone(VectorStore):
         session.close()
 
         return True
+
+    def pingdb(self) -> None:
+        # ping db to keep connection alive.
+        try:
+            session = sessionmaker(bind=self.engine)()
+            session.execute("SELECT 1;")
+            session.commit()
+        except:
+            session.rollback()
+        finally:
+            session.close()
 
     def _select_relevance_score_fn(self) -> Callable[[float], float]:
         return self._cosine_relevance_score_fn
