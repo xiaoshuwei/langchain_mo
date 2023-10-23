@@ -40,11 +40,15 @@ class MODoubleVector(types.UserDefinedType):
 
     def bind_processor(self, dialect):
         def process(value):
+            if value == None:
+                return None
             return json.dumps(value, separators=(',', ':'))
         return process
 
     def result_processor(self, dialect, coltype):
         def process(value):
+            if value == None:
+                return None
             return json.loads(value)
         return process
 
@@ -419,8 +423,15 @@ class Matrixone(VectorStore):
         """
         mo = Matrixone(table_name=table_name, embedding=embedding, host=host,
                        port=port, user=user, password=password, dbname=dbname)
+        mo._delete_table_()
         mo.add_texts(texts=texts, metadatas=metadatas)
         return mo
+
+    def _delete_table_(self)->None:
+        with self.engine.connect() as conn:
+            conn.execute(
+                text("drop table if exists {database}.{table_name};".format(database=self.dbname,table_name=self.table_name)))
+            conn.commit()
 
     @classmethod
     def _build_payloads(
