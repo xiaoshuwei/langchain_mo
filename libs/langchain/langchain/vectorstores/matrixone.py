@@ -96,7 +96,8 @@ class Matrixone(VectorStore):
         self.dbname = dbname
         connectionSQL = "mysql+pymysql://%s:%s@%s:%d" % (
             user, password, host, port)
-        self.engine = create_engine(connectionSQL, echo=True)
+        self.engine = create_engine(connectionSQL, echo=True,
+                                    pool_recycle=3600, pool_pre_ping=True)
         with self.engine.connect() as conn:
             conn.execute(
                 text("create database if not exists {database};use {database};".format(database=dbname)))
@@ -127,6 +128,7 @@ class Matrixone(VectorStore):
 
     def _get_session(self):
         Session = sessionmaker(bind=self.engine)
+
         return Session()
 
     def add_texts(
@@ -149,6 +151,16 @@ class Matrixone(VectorStore):
         dimensions = len(vectors[0])
 
         self._new_mo_doc_embedding_table_and_registry(dimensions)
+
+        # ping db to keep connection alive.
+        try:
+            session = sessionmaker(bind=self.engine)()
+            session.execute("SELECT 1;")
+            session.commit()
+        except:
+            session.rollback()
+        finally:
+            session.close()
 
         session = self._get_session()
 
@@ -210,6 +222,16 @@ class Matrixone(VectorStore):
     def similarity_search_by_vector_with_score(
         self, embedding: List[float], k: int = 4
     ) -> List[Tuple[Document, float]]:
+        # ping db to keep connection alive.
+        try:
+            session = sessionmaker(bind=self.engine)()
+            session.execute("SELECT 1;")
+            session.commit()
+        except:
+            session.rollback()
+        finally:
+            session.close()
+
         session = self._get_session()
 
         sql = text("SELECT *,cosine_similarity(doc_embedding_vector, :embedding_str) as score FROM %s ORDER BY score LIMIT :limit_count ;" % (self.table_name))
@@ -311,6 +333,17 @@ class Matrixone(VectorStore):
             List of Documents selected by maximal marginal relevance and distance for
             each.
         """
+
+        # ping db to keep connection alive.
+        try:
+            session = sessionmaker(bind=self.engine)()
+            session.execute("SELECT 1;")
+            session.commit()
+        except:
+            session.rollback()
+        finally:
+            session.close()
+
         session = self._get_session()
 
         sql = text("SELECT *,cosine_similarity(doc_embedding_vector, :embedding_str) as score FROM %s ORDER BY score LIMIT :limit_count ;" % (self.table_name))
@@ -353,6 +386,16 @@ class Matrixone(VectorStore):
             Optional[bool]: True if deletion is successful,
             False otherwise, None if not implemented.
         """
+        # ping db to keep connection alive.
+        try:
+            session = sessionmaker(bind=self.engine)()
+            session.execute("SELECT 1;")
+            session.commit()
+        except:
+            session.rollback()
+        finally:
+            session.close()
+
         session = self._get_session()
 
         docs = session.query(MODocEmbedding).filter(MODocEmbedding.id.in_(ids))
