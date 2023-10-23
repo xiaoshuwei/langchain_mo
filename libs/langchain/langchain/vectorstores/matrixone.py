@@ -108,7 +108,8 @@ class Matrixone(VectorStore):
             conn.commit()
         connectionSQL = "mysql+pymysql://%s:%s@%s:%d/%s" % (
             user, password, host, port, dbname)
-        self.engine = create_engine(connectionSQL, echo=True)
+        self.engine = create_engine(connectionSQL, echo=True,
+                                    pool_recycle=3600, pool_pre_ping=True)
 
     def _new_mo_doc_embedding_table_and_registry(self, dimensions):
         self.mapper_registry = registry()
@@ -427,10 +428,10 @@ class Matrixone(VectorStore):
         mo.add_texts(texts=texts, metadatas=metadatas)
         return mo
 
-    def _delete_table_(self)->None:
+    def _delete_table_(self) -> None:
         with self.engine.connect() as conn:
             conn.execute(
-                text("drop table if exists {database}.{table_name};".format(database=self.dbname,table_name=self.table_name)))
+                text("drop table if exists {database}.{table_name};".format(database=self.dbname, table_name=self.table_name)))
             conn.commit()
 
     @classmethod
