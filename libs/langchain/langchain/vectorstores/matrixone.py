@@ -16,6 +16,7 @@ import sqlalchemy
 import json
 import uuid
 import numpy as np
+from retry import retry
 
 key_metadata = 'metadata'
 key_page_content = 'page_content'
@@ -216,6 +217,7 @@ class Matrixone(VectorStore):
         """
         return self.similarity_search_by_vector_with_score(embedding=self.embedding.embed_query(query), k=k)
 
+    @retry(tries=3)
     def similarity_search_by_vector_with_score(
         self, embedding: List[float], k: int = 4
     ) -> List[Tuple[Document, float]]:
@@ -299,6 +301,7 @@ class Matrixone(VectorStore):
         )
         return list(map(itemgetter(0), results))
 
+    @retry(tries=3)
     def max_marginal_relevance_search_with_score_by_vector(
         self,
         embedding: List[float],
