@@ -224,7 +224,7 @@ class Matrixone(VectorStore):
 
         session = self._get_session()
 
-        sql = text("SELECT *,cosine_similarity(doc_embedding_vector, :embedding_str) as score FROM %s ORDER BY score LIMIT :limit_count ;" % (self.table_name))
+        sql = text("SELECT *,cosine_similarity(doc_embedding_vector, :embedding_str) as score FROM %s ORDER BY score DESC LIMIT :limit_count ;" % (self.table_name))
         results = session.execute(
             sql, {'embedding_str': self._to_vector_str(embedding), 'limit_count': k})
 
@@ -328,7 +328,7 @@ class Matrixone(VectorStore):
 
         session = self._get_session()
 
-        sql = text("SELECT *,cosine_similarity(doc_embedding_vector, :embedding_str) as score FROM %s ORDER BY score LIMIT :limit_count ;" % (self.table_name))
+        sql = text("SELECT *,cosine_similarity(doc_embedding_vector, :embedding_str) as score FROM %s ORDER BY score DESC LIMIT :limit_count ;" % (self.table_name))
         results = session.execute(
             sql, {'embedding_str': self._to_vector_str(embedding), 'limit_count': fetch_k})
 
