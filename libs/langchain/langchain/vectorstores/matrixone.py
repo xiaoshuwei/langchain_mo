@@ -16,6 +16,9 @@ import sqlalchemy
 import json
 import uuid
 import numpy as np
+from mo_vector.client import MoVectorClient,QueryResult
+from sentence_transformers import SentenceTransformer
+from dotenv import load_dotenv
 from retry import retry
 
 key_metadata = 'metadata'
@@ -24,6 +27,9 @@ key_id = 'id'
 key_payload = 'payload'
 key_doc_embedding_vector = 'doc_embedding_vector'
 
+
+embed_model = SentenceTransformer("sentence-transformers/msmarco-MiniLM-L12-cos-v5", trust_remote_code=True)
+embed_model_dims = embed_model.get_sentence_embedding_dimension()
 
 class MODoubleVector(types.UserDefinedType):
     impl = types.TEXT
@@ -103,6 +109,13 @@ class Matrixone(VectorStore):
             user, password, host, port)
         self.engine = create_engine(connectionSQL, echo=True,
                                     pool_recycle=3600, pool_pre_ping=True)
+        self.vector_store = MoVectorClient(
+            table_name=self.table_name,
+            connection_string=connectionSQL,
+            vector_dimension=embed_model_dims,
+            drop_existing_table=True,
+        )
+        
         with self.engine.connect() as conn:
             conn.execute(
                 text("create database if not exists {database};use {database};".format(database=dbname)))
@@ -472,3 +485,44 @@ class Matrixone(VectorStore):
     @classmethod
     def _str_to_vector(cls, vector_str: str) -> List[float]:
         return json.loads(vector_str)
+    
+    @classmethod
+    def text_to_embedding(text):
+       embedding = embed_model.encode(text)
+       return embedding.tolist()
+    
+    @classmethod
+    def insert(
+        self,
+        texts: Iterable[str],
+        embeddings: Iterable[List[float]],
+        metadatas: Optional[List[dict]] = None,
+        ids: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> List[str]:
+        return self.vector_store.insert(
+            texts=texts, embeddings=embeddings, metadatas=metadatas, ids=ids
+        )
+    
+    @classmethod
+    def create_full_text_index(self):
+        self.vector_store.create_full_text_index()
+
+    @classmethod
+    def mix_query(
+        self,
+        query_vector: List[float],
+        key_words: List[str] = None,
+        rerank_option: Optional[dict] = None,
+        k: int = 5,
+        filter: Optional[dict] = None,
+        **kwargs: Any,
+    ) -> List[QueryResult]:
+        return self.vector_store.mix_query(
+            query_vector=query_vector,
+            key_words=key_words,
+            rerank_option=rerank_option,
+            k=k,
+            filter=filter,
+        )
+
