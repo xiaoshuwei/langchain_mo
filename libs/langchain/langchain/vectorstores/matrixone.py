@@ -181,6 +181,10 @@ class Matrixone(VectorStore):
             id = uuid.uuid4().hex
             docs.append(MODocEmbedding(id=id, payload=json.dumps(
                 payloads[i]), doc_embedding_vector=vectors[i]))
+            self.vector_store.insert(embeddings=self.text_to_embedding(texts[i]), 
+                                     ids=[id],
+                                     metadatas=[metadatas[i]] if metadatas is not None else None,
+                                     texts=[texts[i]])
             ids.append(id)
 
         session.add_all(docs)
@@ -490,20 +494,7 @@ class Matrixone(VectorStore):
     def text_to_embedding(text):
        embedding = embed_model.encode(text)
        return embedding.tolist()
-    
-    @classmethod
-    def insert(
-        self,
-        texts: Iterable[str],
-        embeddings: Iterable[List[float]],
-        metadatas: Optional[List[dict]] = None,
-        ids: Optional[List[str]] = None,
-        **kwargs: Any,
-    ) -> List[str]:
-        return self.vector_store.insert(
-            texts=texts, embeddings=embeddings, metadatas=metadatas, ids=ids
-        )
-    
+        
     @classmethod
     def create_full_text_index(self):
         self.vector_store.create_full_text_index()
