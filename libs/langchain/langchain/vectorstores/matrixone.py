@@ -16,6 +16,9 @@ import sqlalchemy
 import json
 import uuid
 import numpy as np
+from mo_vector.client import MoVectorClient,QueryResult
+from sentence_transformers import SentenceTransformer
+from dotenv import load_dotenv
 from retry import retry
 
 key_metadata = 'metadata'
@@ -24,6 +27,9 @@ key_id = 'id'
 key_payload = 'payload'
 key_doc_embedding_vector = 'doc_embedding_vector'
 
+
+embed_model = SentenceTransformer("sentence-transformers/msmarco-MiniLM-L12-cos-v5", trust_remote_code=True)
+embed_model_dims = embed_model.get_sentence_embedding_dimension()
 
 class MODoubleVector(types.UserDefinedType):
     impl = types.TEXT
@@ -103,6 +109,13 @@ class Matrixone(VectorStore):
             user, password, host, port)
         self.engine = create_engine(connectionSQL, echo=True,
                                     pool_recycle=3600, pool_pre_ping=True)
+        self.vector_store = MoVectorClient(
+            table_name=self.table_name,
+            connection_string=connectionSQL,
+            vector_dimension=embed_model_dims,
+            drop_existing_table=True,
+        )
+
         with self.engine.connect() as conn:
             conn.execute(
                 text("create database if not exists {database};use {database};".format(database=dbname)))
@@ -168,6 +181,10 @@ class Matrixone(VectorStore):
             id = uuid.uuid4().hex
             docs.append(MODocEmbedding(id=id, payload=json.dumps(
                 payloads[i]), doc_embedding_vector=vectors[i]))
+            self.vector_store.insert(embeddings=self.text_to_embedding(texts[i]), 
+                                     ids=[id],
+                                     metadatas=[metadatas[i]] if metadatas is not None else None,
+                                     texts=[texts[i]])
             ids.append(id)
 
         session.add_all(docs)
@@ -193,11 +210,9 @@ class Matrixone(VectorStore):
         self, embedding: List[float], k: int = 4, **kwargs: Any
     ) -> List[Document]:
         """Return docs most similar to embedding vector.
-
         Args:
             embedding: Embedding to look up documents similar to.
             k: Number of Documents to return. Defaults to 4.
-
         Returns:
             List of Documents most similar to the query vector.
         """
@@ -251,10 +266,8 @@ class Matrixone(VectorStore):
         **kwargs: Any,
     ) -> List[Document]:
         """Return docs selected using the maximal marginal relevance.
-
         Maximal marginal relevance optimizes for similarity to query AND diversity
         among selected documents.
-
         Args:
             query: Text to look up documents similar to.
             k: Number of Documents to return. Defaults to 4.
@@ -281,10 +294,8 @@ class Matrixone(VectorStore):
         **kwargs: Any,
     ) -> List[Document]:
         """Return docs selected using the maximal marginal relevance.
-
         Maximal marginal relevance optimizes for similarity to query AND diversity
         among selected documents.
-
         Args:
             embedding: Embedding to look up documents similar to.
             k: Number of Documents to return. Defaults to 4.
@@ -362,11 +373,9 @@ class Matrixone(VectorStore):
 
     def delete(self, ids: Optional[List[str]] = None, **kwargs: Any) -> Optional[bool]:
         """Delete by vector ID or other criteria.
-
         Args:
             ids: List of ids to delete.
             **kwargs: Other keyword arguments that subclasses might use.
-
         Returns:
             Optional[bool]: True if deletion is successful,
             False otherwise, None if not implemented.
@@ -472,3 +481,34 @@ class Matrixone(VectorStore):
     @classmethod
     def _str_to_vector(cls, vector_str: str) -> List[float]:
         return json.loads(vector_str)
+
+    @classmethod
+    def text_to_embedding(text):
+       embedding = embed_model.encode(text)
+       return embedding.tolist()
+
+    @classmethod
+    def create_full_text_index(self):
+        self.vector_store.create_full_text_index()
+
+    @classmethod
+    def insert(self, embeddings: List[List[float]], ids: List[str], metadatas: List[dict] = None, texts: List[str] = None):
+        self.vector_store.insert(embeddings=embeddings, ids=ids, metadatas=metadatas, texts=texts)
+
+    @classmethod
+    def mix_query(
+        self,
+        query_vector: List[float],
+        key_words: List[str] = None,
+        rerank_option: Optional[dict] = None,
+        k: int = 5,
+        filter: Optional[dict] = None,
+        **kwargs: Any,
+    ) -> List[QueryResult]:
+        return self.vector_store.mix_query(
+            query_vector=query_vector,
+            key_words=key_words,
+            rerank_option=rerank_option,
+            k=k,
+            filter=filter,
+        )
