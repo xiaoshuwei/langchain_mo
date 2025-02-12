@@ -500,6 +500,10 @@ class Matrixone(VectorStore):
         self.vector_store.create_full_text_index()
 
     @classmethod
+    def insert(self, embeddings: List[List[float]], ids: List[str], metadatas: List[dict] = None, texts: List[str] = None):
+        self.vector_store.insert(embeddings=embeddings, ids=ids, metadatas=metadatas, texts=texts)
+
+    @classmethod
     def mix_query(
         self,
         query_vector: List[float],
