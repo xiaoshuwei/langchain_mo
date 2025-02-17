@@ -16,9 +16,8 @@ import sqlalchemy
 import json
 import uuid
 import numpy as np
-from mo_vector.client import MoVectorClient,QueryResult
+from mo_vector.client import MoVectorClient, QueryResult
 from sentence_transformers import SentenceTransformer
-from dotenv import load_dotenv
 from retry import retry
 
 key_metadata = 'metadata'
