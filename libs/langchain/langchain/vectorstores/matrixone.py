@@ -108,9 +108,11 @@ class Matrixone(VectorStore):
             user, password, host, port)
         self.engine = create_engine(connectionSQL, echo=True,
                                     pool_recycle=3600, pool_pre_ping=True)
+        
+        connection_string = f"mysql+pymysql://{user}:{password}@{host}:{int(port)}/{dbname}"
         self.vector_store = MoVectorClient(
             table_name=self.table_name,
-            connection_string=connectionSQL,
+            connection_string=connection_string,
             vector_dimension=embed_model_dims,
             drop_existing_table=True,
         )
