@@ -182,10 +182,7 @@ class Matrixone(VectorStore):
             id = uuid.uuid4().hex
             docs.append(MODocEmbedding(id=id, payload=json.dumps(
                 payloads[i]), doc_embedding_vector=vectors[i]))
-            self.vector_store.insert(embeddings=self.text_to_embedding(texts[i]), 
-                                     ids=[id],
-                                     metadatas=[metadatas[i]] if metadatas is not None else None,
-                                     texts=[texts[i]])
+    
             ids.append(id)
 
         session.add_all(docs)
