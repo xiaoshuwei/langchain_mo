@@ -495,6 +495,9 @@ class Matrixone(VectorStore):
     def insert(self, embeddings: List[List[float]], ids: List[str], metadatas: List[dict] = None, texts: List[str] = None):
         self.vector_store.insert(embeddings=embeddings, ids=ids, metadatas=metadatas, texts=texts)
 
+    def delete(self, ids: Optional[List[str]] = None,filter: Optional[dict] = None,**kwargs: Any,):
+        return self.vector_store.delete(ids=ids, filter=filter)
+        
 
     def mix_query(
         self,
