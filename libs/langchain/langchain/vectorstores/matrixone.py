@@ -488,11 +488,13 @@ class Matrixone(VectorStore):
        embedding = embed_model.encode(text)
        return embedding.tolist()
 
+
     def create_full_text_index(self):
         self.vector_store.create_full_text_index()
 
     def insert(self, embeddings: List[List[float]], ids: List[str], metadatas: List[dict] = None, texts: List[str] = None):
         self.vector_store.insert(embeddings=embeddings, ids=ids, metadatas=metadatas, texts=texts)
+
 
     def mix_query(
         self,
