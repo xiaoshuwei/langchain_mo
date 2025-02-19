@@ -100,6 +100,7 @@ class Matrixone(VectorStore):
         self.user = user
         self.password = password
         self.dbname = dbname
+        self.vector_store = None
         connectionSQL = "mysql+pymysql://%s:%s@%s:%d" % (
             user, password, host, port)
         self.engine = create_engine(connectionSQL, echo=True,
@@ -472,7 +473,7 @@ class Matrixone(VectorStore):
     
     def text_to_embedding(self,text):
        embedding = self.embedding.embed_documents(texts=[text])
-       return embedding.tolist()
+       return embedding[0]
     
     def _get_vector_dimensions(self)->int:
         embedding = self.embedding.embed_documents(texts=[""])
