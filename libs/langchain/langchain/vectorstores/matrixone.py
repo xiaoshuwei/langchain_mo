@@ -17,7 +17,6 @@ import json
 import uuid
 import numpy as np
 from mo_vector.client import MoVectorClient, QueryResult
-from sentence_transformers import SentenceTransformer
 from retry import retry
 
 key_metadata = 'metadata'
@@ -26,9 +25,6 @@ key_id = 'id'
 key_payload = 'payload'
 key_doc_embedding_vector = 'doc_embedding_vector'
 
-
-embed_model = SentenceTransformer("sentence-transformers/msmarco-MiniLM-L12-cos-v5", trust_remote_code=True)
-embed_model_dims = embed_model.get_sentence_embedding_dimension()
 
 class MODoubleVector(types.UserDefinedType):
     impl = types.TEXT
@@ -109,23 +105,17 @@ class Matrixone(VectorStore):
         self.engine = create_engine(connectionSQL, echo=True,
                                     pool_recycle=3600, pool_pre_ping=True)
         
-        connection_string = f"mysql+pymysql://{user}:{password}@{host}:{int(port)}/{dbname}"
-        self.vector_store = MoVectorClient(
-            table_name=self.table_name,
-            connection_string=connection_string,
-            vector_dimension=embed_model_dims,
-            drop_existing_table=True,
-        )
-
         with self.engine.connect() as conn:
             conn.execute(
                 text("create database if not exists {database};use {database};".format(database=dbname)))
             conn.commit()
         connectionSQL = "mysql+pymysql://%s:%s@%s:%d/%s" % (
             user, password, host, port, dbname)
+        self.connectionSQL = connectionSQL
         self.engine = create_engine(connectionSQL, echo=True,
                                     pool_recycle=3600, pool_pre_ping=True)
-
+        
+        
     def _new_mo_doc_embedding_table_and_registry(self, dimensions):
         self.mapper_registry = registry()
         table = Table(
@@ -479,20 +469,37 @@ class Matrixone(VectorStore):
     @classmethod
     def _str_to_vector(cls, vector_str: str) -> List[float]:
         return json.loads(vector_str)
+    
 
-    @classmethod
-    def text_to_embedding(text):
-       embedding = embed_model.encode(text)
+    def text_to_embedding(self,text):
+       embedding = self.embedding.embed_documents(texts=[text])
        return embedding.tolist()
+    
+    def getVectorDemention(self, embedding):
+        return len(embedding[0])
+
+    def createVectorClient(self, dimensions):
+        self.vector_store = MoVectorClient(
+            connection_string=self.connectionSQL,
+            table_name=self.table_name,
+            vector_dimension=dimensions,
+            drop_existing_table=True,
+        )
 
 
     def create_full_text_index(self):
+        if self.vector_store == None:
+            return
         self.vector_store.create_full_text_index()
 
     def insert(self, embeddings: List[List[float]], ids: List[str], metadatas: List[dict] = None, texts: List[str] = None):
+        if self.vector_store == None:
+            self.createVectorClient(self.getVectorDemention(embeddings))
         self.vector_store.insert(embeddings=embeddings, ids=ids, metadatas=metadatas, texts=texts)
 
     def delete(self, ids: Optional[List[str]] = None,filter: Optional[dict] = None,**kwargs: Any,):
+        if self.vector_store == None:
+            return None
         return self.vector_store.delete(ids=ids, filter=filter)
         
 
@@ -505,6 +512,8 @@ class Matrixone(VectorStore):
         filter: Optional[dict] = None,
         **kwargs: Any,
     ) -> List[QueryResult]:
+        if self.vector_store == None:
+            return
         return self.vector_store.mix_query(
             query_vector=query_vector,
             key_words=key_words,
