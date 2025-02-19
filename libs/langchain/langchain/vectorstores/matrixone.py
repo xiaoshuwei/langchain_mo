@@ -475,7 +475,7 @@ class Matrixone(VectorStore):
        embedding = self.embedding.embed_documents(texts=[text])
        return embedding.tolist()
     
-    def get_vector_dementions(self):
+    def _get_vector_dementions(self):
         embedding = self.embedding.embed_documents(texts=[""])
         return len(embedding[0])
 
@@ -484,7 +484,7 @@ class Matrixone(VectorStore):
             self.vector_store = MoVectorClient(
             connection_string=self.connectionSQL,
             table_name=self.table_name,
-            vector_dimension=self.get_vector_dementions(),
+            vector_dimension=self._get_vector_dementions(),
             drop_existing_table=True,
             )
         return self.vector_store
