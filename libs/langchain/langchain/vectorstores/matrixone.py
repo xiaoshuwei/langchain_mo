@@ -470,12 +470,11 @@ class Matrixone(VectorStore):
     def _str_to_vector(cls, vector_str: str) -> List[float]:
         return json.loads(vector_str)
     
-
     def text_to_embedding(self,text):
        embedding = self.embedding.embed_documents(texts=[text])
        return embedding.tolist()
     
-    def _get_vector_dementions(self):
+    def _get_vector_dimensions(self)->int:
         embedding = self.embedding.embed_documents(texts=[""])
         return len(embedding[0])
 
@@ -484,7 +483,7 @@ class Matrixone(VectorStore):
             self.vector_store = MoVectorClient(
             connection_string=self.connectionSQL,
             table_name=self.table_name,
-            vector_dimension=self._get_vector_dementions(),
+            vector_dimension=self._get_vector_dimensions(),
             drop_existing_table=True,
             )
         return self.vector_store
@@ -498,7 +497,6 @@ class Matrixone(VectorStore):
     def delete(self, ids: Optional[List[str]] = None,filter: Optional[dict] = None,**kwargs: Any,):
         return self.get_vector_client().delete(ids=ids, filter=filter)
         
-
     def mix_query(
         self,
         query_vector: List[float],
