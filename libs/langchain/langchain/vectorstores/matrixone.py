@@ -487,6 +487,7 @@ class Matrixone(VectorStore):
             vector_dimension=self.get_vector_dementions(),
             drop_existing_table=True,
             )
+        return self.vector_store
            
     def create_full_text_index(self):
         self.get_vector_client().create_full_text_index()
