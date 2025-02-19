@@ -475,32 +475,27 @@ class Matrixone(VectorStore):
        embedding = self.embedding.embed_documents(texts=[text])
        return embedding.tolist()
     
-    def getVectorDemention(self, embedding):
+    def get_vector_dementions(self):
+        embedding = self.embedding.embed_documents(texts=[""])
         return len(embedding[0])
 
-    def createVectorClient(self, dimensions):
-        self.vector_store = MoVectorClient(
+    def get_vector_client(self) -> MoVectorClient:
+        if self.vector_store == None:
+            self.vector_store = MoVectorClient(
             connection_string=self.connectionSQL,
             table_name=self.table_name,
-            vector_dimension=dimensions,
+            vector_dimension=self.get_vector_dementions(),
             drop_existing_table=True,
-        )
-
-
+            )
+           
     def create_full_text_index(self):
-        if self.vector_store == None:
-            return
-        self.vector_store.create_full_text_index()
+        self.get_vector_client().create_full_text_index()
 
     def insert(self, embeddings: List[List[float]], ids: List[str], metadatas: List[dict] = None, texts: List[str] = None):
-        if self.vector_store == None:
-            self.createVectorClient(self.getVectorDemention(embeddings))
-        self.vector_store.insert(embeddings=embeddings, ids=ids, metadatas=metadatas, texts=texts)
+        self.get_vector_client().insert(embeddings=embeddings, ids=ids, metadatas=metadatas, texts=texts)
 
     def delete(self, ids: Optional[List[str]] = None,filter: Optional[dict] = None,**kwargs: Any,):
-        if self.vector_store == None:
-            return None
-        return self.vector_store.delete(ids=ids, filter=filter)
+        return self.get_vector_client().delete(ids=ids, filter=filter)
         
 
     def mix_query(
@@ -512,9 +507,7 @@ class Matrixone(VectorStore):
         filter: Optional[dict] = None,
         **kwargs: Any,
     ) -> List[QueryResult]:
-        if self.vector_store == None:
-            return
-        return self.vector_store.mix_query(
+        return self.get_vector_client().mix_query(
             query_vector=query_vector,
             key_words=key_words,
             rerank_option=rerank_option,
