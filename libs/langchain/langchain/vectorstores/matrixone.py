@@ -101,7 +101,6 @@ class Matrixone(VectorStore):
         self.password = password
         self.dbname = dbname
         self.vector_store = None
-
         connectionSQL = "mysql+pymysql://%s:%s@%s:%d" % (
             user, password, host, port)
         self.engine = create_engine(connectionSQL, echo=True,
