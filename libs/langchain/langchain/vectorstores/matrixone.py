@@ -504,7 +504,9 @@ class Matrixone(VectorStore):
         key_words: List[str] = None,
         rerank_option: Optional[dict] = None,
         k: int = 5,
-        filter: Optional[dict] = None,
+        filter: Optional[dict] = None, 
+        dis_lower_bound: Optional[float] = None,
+        dis_upper_bound: Optional[float] = None,
         **kwargs: Any,
     ) -> List[QueryResult]:
         return self.get_vector_client().mix_query(
@@ -513,4 +515,7 @@ class Matrixone(VectorStore):
             rerank_option=rerank_option,
             k=k,
             filter=filter,
+            dis_lower_bound=dis_lower_bound,
+            dis_upper_bound=dis_upper_bound,
+            **kwargs,
         )

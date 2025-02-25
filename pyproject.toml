@@ -10,7 +10,7 @@ repository = "https://www.github.com/langchain-ai/langchain"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-mo-vector = "0.1.2"
+mo-vector = "0.1.3"
 pyyaml = "^6.0.2"
 fitz = "^0.0.1.dev2"
 frontend = "^0.0.3"
